@@ -289,7 +289,8 @@ def conv2d_gradx(w, dy, xsize, pad='SAME', stride=(1, 1)):
                          1]))
         pad2 = (pad2h, pad2w)
     elif pad == 'VALID':
-        pad2 = calc_pad_old('SAME', ksize)
+        pad2 = (int(calc_pad('SAME', 0, 0, 1, ksize[0])),
+                int(calc_pad('SAME', 0, 0, 1, ksize[1])))
         pad2 = (pad2[0] * 2, pad2[1] * 2)
     else:
         pad2 = pad
