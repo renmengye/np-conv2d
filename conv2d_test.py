@@ -15,7 +15,6 @@ def test(x, w, pad='SAME', stride=(1, 1)):
     with tf.Session() as sess:
         y_tf = yy.eval().ravel()
     np.testing.assert_almost_equal(y, y_tf, decimal=3)
-    pass
 
 
 def test_gradw(x, w, pad='SAME', stride=(1, 1)):
@@ -76,8 +75,6 @@ if __name__ == '__main__':
     for ii in range(25):
         x = np.random.rand(3, 5, 5, 2).astype('float32')
         w = np.random.rand(2, 3, 2, 1).astype('float32')
-        # x = np.random.rand(1, 4, 4, 1).astype('float32')
-        # w = np.random.rand(3, 3, 1, 1).astype('float32')
         test(x, w, stride=(2, 2))
         test_gradw(x, w, stride=(2, 2))
         test_gradx(x, w, stride=(2, 2))

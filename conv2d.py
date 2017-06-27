@@ -190,20 +190,22 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
     ph = int(calc_pad(pad, h, h2, sh, kh))
     pw = int(calc_pad(pad, w, w2, sw, kw))
 
-    ph2 = int(np.ceil(ph / 2))
-    ph3 = int(np.floor(ph / 2))
-    pw2 = int(np.ceil(pw / 2))
-    pw3 = int(np.floor(pw / 2))
+    ph0 = int(np.floor(ph / 2))
+    ph1 = int(np.ceil(ph / 2))
+    pw0 = int(np.floor(pw / 2))
+    pw1 = int(np.ceil(pw / 2))
+
     if floor_first:
-        pph = (ph3, ph2)
-        ppw = (pw3, pw2)
+        pph = (ph0, ph1)
+        ppw = (pw0, pw1)
     else:
-        pph = (ph2, ph3)
-        ppw = (pw2, pw3)
+        pph = (ph1, ph0)
+        ppw = (pw1, pw0)
     x = np.pad(
         x, ((0, 0), pph, ppw, (0, 0)),
         mode='constant',
         constant_values=(0.0, ))
+
     y = np.zeros([n, h2, w2, kh, kw, c])
     for ii in range(h2):
         for jj in range(w2):
