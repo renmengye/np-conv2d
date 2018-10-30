@@ -3,6 +3,16 @@ from __future__ import division
 import numpy as np
 
 
+def array_offset(x):
+    """Get offset of array data from base data in bytes."""
+    if x.base is None:
+        return 0
+
+    base_start = x.base.__array_interface__['data'][0]
+    start = x.__array_interface__['data'][0]
+    return start - base_start
+
+
 def calc_pad(pad, in_siz, out_siz, stride, ksize):
     """Calculate padding width.
 
@@ -206,12 +216,10 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
         mode='constant',
         constant_values=(0.0, ))
 
-    y = np.zeros([n, h2, w2, kh, kw, c])
-    for ii in range(h2):
-        for jj in range(w2):
-            xx = ii * sh
-            yy = jj * sw
-            y[:, ii, jj, :, :, :] = x[:, xx:xx + kh, yy:yy + kw, :]
+    x_sn, x_sh, x_sw, x_sc = x.strides
+    y_strides = (x_sn, sh*x_sh, sw*x_sw, x_sh, x_sw, x_sc)
+    y = np.ndarray((n, h2, w2, kh, kw, c), dtype=x.dtype, buffer=x.data,
+                   offset=array_offset(x), strides=y_strides)
     return y
 
 
