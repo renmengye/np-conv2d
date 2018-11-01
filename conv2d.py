@@ -104,15 +104,11 @@ def extract_sliding_windows_gradw(x,
             x, ((0, 0), (0, p2h), (0, p2w), (0, 0)),
             mode='constant',
             constant_values=(0.0, ))
-    x = x.reshape([n, int(x.shape[1] / sh), sh, int(x.shape[2] / sw), sw, c])
 
-    y = np.zeros([n, h2, w2, kh, kw, c])
-    for ii in range(h2):
-        for jj in range(w2):
-            h0 = int(np.floor(ii / sh))
-            w0 = int(np.floor(jj / sw))
-            y[:, ii, jj, :, :, :] = x[:, h0:h0 + kh, ii % sh, w0:w0 + kw, jj %
-                                      sw, :]
+    x_sn, x_sh, x_sw, x_sc = x.strides
+    y_strides = (x_sn, x_sh, x_sw, sh*x_sh, sw*x_sw, x_sc)
+    y = np.ndarray((n, h2, w2, kh, kw, c), dtype=x.dtype, buffer=x.data,
+                   offset=array_offset(x), strides=y_strides)
     return y
 
 
@@ -166,11 +162,11 @@ def extract_sliding_windows_gradx(x,
         x, ((0, 0), pph, ppw, (0, 0)),
         mode='constant',
         constant_values=(0.0, ))
-    y = np.zeros([n, h2, w2, kh, kw, c])
 
-    for ii in range(h2):
-        for jj in range(w2):
-            y[:, ii, jj, :, :, :] = x[:, ii:ii + kh, jj:jj + kw, :]
+    x_sn, x_sh, x_sw, x_sc = x.strides
+    y_strides = (x_sn, x_sh, x_sw, x_sh, x_sw, x_sc)
+    y = np.ndarray((n, h2, w2, kh, kw, c), dtype=x.dtype, buffer=x.data,
+                   offset=array_offset(x), strides=y_strides)
     return y
 
 
