@@ -3,6 +3,16 @@ from __future__ import division
 import numpy as np
 
 
+def array_offset(x):
+    """Get offset of array data from base data in bytes."""
+    if x.base is None:
+        return 0
+
+    base_start = x.base.__array_interface__['data'][0]
+    start = x.__array_interface__['data'][0]
+    return start - base_start
+
+
 def calc_pad(pad, in_siz, out_siz, stride, ksize):
     """Calculate padding width.
 
@@ -94,15 +104,23 @@ def extract_sliding_windows_gradw(x,
             x, ((0, 0), (0, p2h), (0, p2w), (0, 0)),
             mode='constant',
             constant_values=(0.0, ))
-    x = x.reshape([n, int(x.shape[1] / sh), sh, int(x.shape[2] / sw), sw, c])
 
-    y = np.zeros([n, h2, w2, kh, kw, c])
-    for ii in range(h2):
-        for jj in range(w2):
-            h0 = int(np.floor(ii / sh))
-            w0 = int(np.floor(jj / sw))
-            y[:, ii, jj, :, :, :] = x[:, h0:h0 + kh, ii % sh, w0:w0 + kw, jj %
-                                      sw, :]
+    # The following code extracts window without copying the data:
+    # x = x.reshape([n, int(x.shape[1] / sh), sh, int(x.shape[2] / sw), sw, c])
+    # y = np.zeros([n, h2, w2, kh, kw, c])
+    # for ii in range(h2):
+    #     for jj in range(w2):
+    #         h0 = int(np.floor(ii / sh))
+    #         w0 = int(np.floor(jj / sw))
+    #         y[:, ii, jj, :, :, :] = x[:, h0:h0 + kh, ii % sh, w0:w0 + kw, jj %
+    #                                   sw, :]
+    x_sn, x_sh, x_sw, x_sc = x.strides
+    y_strides = (x_sn, x_sh, x_sw, sh * x_sh, sw * x_sw, x_sc)
+    y = np.ndarray((n, h2, w2, kh, kw, c),
+                   dtype=x.dtype,
+                   buffer=x.data,
+                   offset=array_offset(x),
+                   strides=y_strides)
     return y
 
 
@@ -156,11 +174,19 @@ def extract_sliding_windows_gradx(x,
         x, ((0, 0), pph, ppw, (0, 0)),
         mode='constant',
         constant_values=(0.0, ))
-    y = np.zeros([n, h2, w2, kh, kw, c])
 
-    for ii in range(h2):
-        for jj in range(w2):
-            y[:, ii, jj, :, :, :] = x[:, ii:ii + kh, jj:jj + kw, :]
+    # The following code extracts window without copying the data:
+    # y = np.zeros([n, h2, w2, kh, kw, c])
+    # for ii in range(h2):
+    #     for jj in range(w2):
+    #         y[:, ii, jj, :, :, :] = x[:, ii:ii + kh, jj:jj + kw, :]
+    x_sn, x_sh, x_sw, x_sc = x.strides
+    y_strides = (x_sn, x_sh, x_sw, x_sh, x_sw, x_sc)
+    y = np.ndarray((n, h2, w2, kh, kw, c),
+                   dtype=x.dtype,
+                   buffer=x.data,
+                   offset=array_offset(x),
+                   strides=y_strides)
     return y
 
 
@@ -206,12 +232,20 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
         mode='constant',
         constant_values=(0.0, ))
 
-    y = np.zeros([n, h2, w2, kh, kw, c])
-    for ii in range(h2):
-        for jj in range(w2):
-            xx = ii * sh
-            yy = jj * sw
-            y[:, ii, jj, :, :, :] = x[:, xx:xx + kh, yy:yy + kw, :]
+    # The following code extracts window without copying the data:
+    # y = np.zeros([n, h2, w2, kh, kw, c])
+    # for ii in range(h2):
+    #     for jj in range(w2):
+    #         xx = ii * sh
+    #         yy = jj * sw
+    #         y[:, ii, jj, :, :, :] = x[:, xx:xx + kh, yy:yy + kw, :]
+    x_sn, x_sh, x_sw, x_sc = x.strides
+    y_strides = (x_sn, sh * x_sh, sw * x_sw, x_sh, x_sw, x_sc)
+    y = np.ndarray((n, h2, w2, kh, kw, c),
+                   dtype=x.dtype,
+                   buffer=x.data,
+                   offset=array_offset(x),
+                   strides=y_strides)
     return y
 
 
@@ -280,13 +314,11 @@ def conv2d_gradx(w, dy, xsize, pad='SAME', stride=(1, 1)):
     if pad == 'SAME':
         dys = dy.shape[1:3]
         pad2h = int(
-            calc_pad('SAME',
-                     max(dys[0], dys[0] * stride[0] - 1), xsize[0], 1, ksize[
-                         0]))
+            calc_pad('SAME', max(dys[0], dys[0] * stride[0] - 1), xsize[0], 1,
+                     ksize[0]))
         pad2w = int(
-            calc_pad('SAME',
-                     max(dys[0], dys[0] * stride[1] - 1), xsize[1], 1, ksize[
-                         1]))
+            calc_pad('SAME', max(dys[0], dys[0] * stride[1] - 1), xsize[1], 1,
+                     ksize[1]))
         pad2 = (pad2h, pad2w)
     elif pad == 'VALID':
         pad2 = (int(calc_pad('SAME', 0, 0, 1, ksize[0])),
