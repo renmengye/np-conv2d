@@ -317,7 +317,7 @@ def conv2d_gradx(w, dy, xsize, pad='SAME', stride=(1, 1)):
             calc_pad('SAME', max(dys[0], dys[0] * stride[0] - 1), xsize[0], 1,
                      ksize[0]))
         pad2w = int(
-            calc_pad('SAME', max(dys[0], dys[0] * stride[1] - 1), xsize[1], 1,
+            calc_pad('SAME', max(dys[1], dys[1] * stride[1] - 1), xsize[1], 1,
                      ksize[1]))
         pad2 = (pad2h, pad2w)
     elif pad == 'VALID':
