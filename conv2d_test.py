@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 
+import itertools
+
 import numpy as np
 import tensorflow as tf
 
@@ -88,3 +90,14 @@ if __name__ == '__main__':
         test_gradw(x, w, pad='VALID', stride=(2, 2))
         test_gradx(x, w, pad='VALID', stride=(2, 2))
         print(ii, 'pass')
+
+    strides = [(1, 1), (2, 2), (3, 2)]
+    kernel_size = [(1, 1), (4, 5), (5, 4), (5, 5)]
+    padding = ("SAME", "VALID")
+    for stride, ksize, pad in itertools.product(strides, kernel_size, padding):
+        x = np.random.rand(3, 5, 5, 2).astype('float32')
+        w = np.random.rand(*(ksize + (2, 1))).astype('float32')
+        test(x, w, pad=pad, stride=stride)
+        test_gradw(x, w, pad=pad, stride=stride)
+        test_gradx(x, w, pad=pad, stride=stride)
+        print("stride=%s, ksize=%s, pad=%s pass" % (stride, ksize, pad))
