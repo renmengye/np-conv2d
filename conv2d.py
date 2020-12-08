@@ -24,9 +24,34 @@ def calc_pad(pad, in_siz, out_siz, stride, ksize):
         pad_: Actual padding width.
     """
     if pad == 'SAME':
-        return (out_siz - 1) * stride + ksize - in_siz
+        return max((out_siz - 1) * stride + ksize - in_siz, 0)
     elif pad == 'VALID':
         return 0
+    else:
+        return pad
+
+
+def calc_gradx_pad(pad, in_siz, out_siz, stride, ksize):
+    """Calculate padding width for conv2d_gradx.
+
+    Args:
+        pad: Padding method, "SAME", "VALID", or manually speicified.
+        in_siz: Size of the input to `conv2d_gradx` (i.e. size of `dy`).
+        out_siz: Size of the output of `conv2d_gradx` (i.e. size of `dx`).
+        stride: Length of the convolution stride.
+        ksize: Kernel size.
+
+    Returns:
+        pad_: Actual padding width.
+    """
+    if pad == 'SAME':
+        out_siz_min = (in_siz - 1) * stride + 1
+        p = out_siz + ksize - 1 - out_siz_min
+        p = max(p, 0)
+        p = min(p, (ksize - 1) * 2)
+        return p
+    elif pad == 'VALID':
+        return (ksize - 1) * 2
     else:
         return pad
 
@@ -309,25 +334,16 @@ def conv2d_gradx(w, dy, xsize, pad='SAME', stride=(1, 1)):
     Returns:
         dx: [N, H, W, C]
     """
-    ksize = w.shape[:2]
-
-    if pad == 'SAME':
-        dys = dy.shape[1:3]
-        pad2h = int(
-            calc_pad('SAME', max(dys[0], dys[0] * stride[0] - 1), xsize[0], 1,
-                     ksize[0]))
-        pad2w = int(
-            calc_pad('SAME', max(dys[0], dys[0] * stride[1] - 1), xsize[1], 1,
-                     ksize[1]))
-        pad2 = (pad2h, pad2w)
-    elif pad == 'VALID':
-        pad2 = (int(calc_pad('SAME', 0, 0, 1, ksize[0])),
-                int(calc_pad('SAME', 0, 0, 1, ksize[1])))
-        pad2 = (pad2[0] * 2, pad2[1] * 2)
-    else:
-        pad2 = pad
+    assert w.shape[-1] == dy.shape[-1], "`w` filters must match `dy` channels"
     w = np.transpose(w, [0, 1, 3, 2])
+
+    dys = dy.shape[1:3]
     ksize = w.shape[:2]
+    pad2 = (
+        calc_gradx_pad(pad, dys[0], xsize[0], stride[0], ksize[0]),
+        calc_gradx_pad(pad, dys[1], xsize[1], stride[1], ksize[1]),
+    )
+
     dx = extract_sliding_windows_gradx(dy, ksize, pad2, stride, xsize)
     dxs = dx.shape
     dx = dx.reshape([dxs[0] * dxs[1] * dxs[2], -1])
