@@ -16,12 +16,23 @@ def array_offset(x):
 def calc_pad(pad, in_siz, out_siz, stride, ksize):
     """Calculate padding width.
 
-    Args:
-        pad: padding method, "SAME", "VALID", or manually speicified.
-        ksize: kernel size [I, J].
+    Arguments
+    ---------
+    pad : str or int
+        Padding method, either "SAME", "VALID", or manually specified.
+    in_siz : int
+        Size of the input to `.conv2d`.
+    out_size : int
+        Size of the output of `.conv2d`.
+    stride : int
+        Length of the convolution stride.
+    ksize : int
+        Kernel size.
 
-    Returns:
-        pad_: Actual padding width.
+    Returns
+    -------
+    pad_ : int
+        Actual padding width.
     """
     if pad == "SAME":
         return max((out_siz - 1) * stride + ksize - in_siz, 0)
@@ -34,15 +45,23 @@ def calc_pad(pad, in_siz, out_siz, stride, ksize):
 def calc_gradx_pad(pad, in_siz, out_siz, stride, ksize):
     """Calculate padding width for conv2d_gradx.
 
-    Args:
-        pad: Padding method, "SAME", "VALID", or manually speicified.
-        in_siz: Size of the input to `conv2d_gradx` (i.e. size of `dy`).
-        out_siz: Size of the output of `conv2d_gradx` (i.e. size of `dx`).
-        stride: Length of the convolution stride.
-        ksize: Kernel size.
+    Arguments
+    --------
+    pad : str or int
+        Padding method, either "SAME", "VALID", or manually specified.
+    in_siz : int
+        Size of the input to `.conv2d_gradx` (i.e. size of ``dy``).
+    out_siz : int
+        Size of the output of `.conv2d_gradx` (i.e. size of ``dx``).
+    stride : int
+        Length of the convolution stride.
+    ksize : int
+        Kernel size.
 
-    Returns:
-        pad_: Actual padding width.
+    Returns
+    -------
+    pad_ : int
+        Actual padding width.
     """
     if pad == "SAME":
         out_siz_min = (in_siz - 1) * stride + 1
@@ -59,14 +78,21 @@ def calc_gradx_pad(pad, in_siz, out_siz, stride, ksize):
 def calc_size(h, kh, pad, sh):
     """Calculate output image size on one dimension.
 
-    Args:
-        h: input image size.
-        kh: kernel size.
-        pad: padding strategy.
-        sh: stride.
+    Arguments
+    ---------
+    h : int
+        Input image size.
+    kh : int
+        Kernel size.
+    pad : str or int
+        Padding strategy, either "SAME", "VALID", or manually specified.
+    sh : int
+        Stride.
 
-    Returns:
-        s: output size.
+    Returns
+    -------
+    s : int
+        Output size.
     """
 
     if pad == "VALID":
@@ -80,14 +106,23 @@ def calc_size(h, kh, pad, sh):
 def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=True):
     """Extracts dilated windows.
 
-    Args:
-        x: [N, H, W, C]
-        k: [KH, KW]
-        pad: [PH, PW]
-        stride: [SH, SW]
+    Arguments
+    ---------
+    x : np.array
+        Input with shape [N, H, W, C].
+    ksize : Tuple
+        Kernel size [KH, KW].
+    pad : Tuple
+        Padding strategy or manually specified int for [PH, PW].
+    stride : Tuple
+        Stride, [SH, SW].
+    orig_size : Tuple
+        Original size [H, W].
 
-    Returns:
-        y: [N, H', W', KH, KW, C]
+    Returns
+    -------
+    y : np.array
+        Sliding window: [N, H', W', KH, KW, C]
     """
     n = x.shape[0]
     h = x.shape[1]
@@ -136,8 +171,7 @@ def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=
     #     for jj in range(w2):
     #         h0 = int(np.floor(ii / sh))
     #         w0 = int(np.floor(jj / sw))
-    #         y[:, ii, jj, :, :, :] = x[:, h0:h0 + kh, ii % sh, w0:w0 + kw, jj %
-    #                                   sw, :]
+    #         y[:, ii, jj, :, :, :] = x[:, h0:h0 + kh, ii % sh, w0:w0 + kw, jj % sw, :]
     x_sn, x_sh, x_sw, x_sc = x.strides
     y_strides = (x_sn, x_sh, x_sw, sh * x_sh, sw * x_sw, x_sc)
     y = np.ndarray(
@@ -153,15 +187,23 @@ def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=
 def extract_sliding_windows_gradx(x, ksize, pad, stride, orig_size, floor_first=False):
     """Extracts windows on a dilated image.
 
-    Args:
-        x: [N, H', W', C] (usually dy)
-        k: [KH, KW]
-        pad: [PH, PW]
-        stride: [SH, SW]
-        orig_size: [H, W]
+    Arguments
+    ---------
+    x : np.array
+        Input with shape [N, H', W', C] (usually dy).
+    ksize : Tuple
+        Kernel size [KH, KW].
+    pad : Tuple
+        Padding strategy or manually specified int for [PH, PW].
+    stride : Tuple
+        Stride, [SH, SW].
+    orig_size : Tuple
+        Original size [H, W].
 
-    Returns:
-        y: [N, H, W, KH, KW, C]
+    Returns
+    -------
+    y : np.array
+        Sliding window: [N, H, W, KH, KW, C]
     """
     n = x.shape[0]
     h = x.shape[1]
@@ -213,14 +255,21 @@ def extract_sliding_windows_gradx(x, ksize, pad, stride, orig_size, floor_first=
 def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
     """Converts a tensor to sliding windows.
 
-    Args:
-        x: [N, H, W, C]
-        k: [KH, KW]
-        pad: [PH, PW]
-        stride: [SH, SW]
+    Arguments
+    ---------
+    x : np.array
+        Input with shape [N, H, W, C]
+    ksize : Tuple
+        Kernel size [KH, KW].
+    pad : Tuple
+        Padding strategy or manually specified int for [PH, PW].
+    stride : Tuple
+        Stride, [SH, SW].
 
-    Returns:
-        y: [N, (H-KH+PH+1)/SH, (W-KW+PW+1)/SW, KH * KW, C]
+    Returns
+    -------
+    y : np.array
+        Sliding window: [N, (H-KH+PH+1)/SH, (W-KW+PW+1)/SW, KH * KW, C]
     """
     n = x.shape[0]
     h = x.shape[1]
@@ -271,14 +320,21 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
 def conv2d(x, w, pad="SAME", stride=(1, 1)):
     """2D convolution (technically speaking, correlation).
 
-    Args:
-        x: [N, H, W, C]
-        w: [I, J, C, K]
-        pad: [PH, PW]
-        stride: [SH, SW]
+    Arguments
+    ---------
+    x : np.array
+        Input with shape [N, H, W, C]
+    w : np.array
+        Weights with shape [I, J, C, K]
+    pad : Tuple
+        Padding strategy or manually specified int for [PH, PW].
+    stride : Tuple
+        Stride, [SH, SW].
 
-    Returns:
-        y: [N, H', W', K]
+    Returns
+    -------
+    y : np.array
+        Convolved result with shape [N, H', W', K]
     """
     ksize = w.shape[:2]
     x = extract_sliding_windows(x, ksize, pad, stride)
@@ -294,13 +350,23 @@ def conv2d(x, w, pad="SAME", stride=(1, 1)):
 def conv2d_gradw(x, dy, ksize, pad="SAME", stride=(1, 1)):
     """2D convolution gradient wrt. filters.
 
-    Args:
-        dy: [N, H', W', K]
-        x: [N, H, W, C]
-        ksize: original w ksize [I, J].
+    Arguments
+    ---------
+    dy : np.array
+        ``dy`` with shape [N, H', W', K].
+    x : np.array
+        Input array with shape [N, H, W, C].
+    ksize : Tuple
+        Original w ksize [I, J].
+    pad : Tuple
+        Padding strategy or manually specified int for [PH, PW].
+    stride : Tuple
+        Stride, [SH, SW].
 
-    Returns:
-        dw: [I, J, C, K]
+    Returns
+    -------
+    dw : np.array
+        Output array with shape [I, J, C, K].
     """
     dy = np.transpose(dy, [1, 2, 0, 3])
     x = np.transpose(x, [3, 1, 2, 0])
@@ -320,13 +386,23 @@ def conv2d_gradw(x, dy, ksize, pad="SAME", stride=(1, 1)):
 def conv2d_gradx(w, dy, xsize, pad="SAME", stride=(1, 1)):
     """2D convolution gradient wrt. input.
 
-    Args:
-        dy: [N, H', W', K]
-        w: [I, J, C, K]
-        xsize: Original image size, [H, W]
+    Arguments
+    ---------
+    dy : np.array
+        ``dy`` with shape [N, H', W', K].
+    w : np.array
+        Weights with shape [I, J, K, C].
+    xsize : Tuple
+        Original image size, [H, W].
+    pad : Tuple
+        Padding strategy or manually specified int for [PH, PW].
+    stride : Tuple
+        Stride, [SH, SW].
 
-    Returns:
-        dx: [N, H, W, C]
+    Returns
+    -------
+    dx : np.array
+        Output array with shape [N, H, W, C].
     """
     assert w.shape[-1] == dy.shape[-1], "`w` filters must match `dy` channels"
     w = np.transpose(w, [0, 1, 3, 2])
