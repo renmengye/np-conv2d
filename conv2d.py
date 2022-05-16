@@ -8,8 +8,8 @@ def array_offset(x):
     if x.base is None:
         return 0
 
-    base_start = x.base.__array_interface__['data'][0]
-    start = x.__array_interface__['data'][0]
+    base_start = x.base.__array_interface__["data"][0]
+    start = x.__array_interface__["data"][0]
     return start - base_start
 
 
@@ -23,9 +23,9 @@ def calc_pad(pad, in_siz, out_siz, stride, ksize):
     Returns:
         pad_: Actual padding width.
     """
-    if pad == 'SAME':
+    if pad == "SAME":
         return max((out_siz - 1) * stride + ksize - in_siz, 0)
-    elif pad == 'VALID':
+    elif pad == "VALID":
         return 0
     else:
         return pad
@@ -44,13 +44,13 @@ def calc_gradx_pad(pad, in_siz, out_siz, stride, ksize):
     Returns:
         pad_: Actual padding width.
     """
-    if pad == 'SAME':
+    if pad == "SAME":
         out_siz_min = (in_siz - 1) * stride + 1
         p = out_siz + ksize - 1 - out_siz_min
         p = max(p, 0)
         p = min(p, (ksize - 1) * 2)
         return p
-    elif pad == 'VALID':
+    elif pad == "VALID":
         return (ksize - 1) * 2
     else:
         return pad
@@ -69,20 +69,15 @@ def calc_size(h, kh, pad, sh):
         s: output size.
     """
 
-    if pad == 'VALID':
+    if pad == "VALID":
         return np.ceil((h - kh + 1) / sh)
-    elif pad == 'SAME':
+    elif pad == "SAME":
         return np.ceil(h / sh)
     else:
         return int(np.ceil((h - kh + pad + 1) / sh))
 
 
-def extract_sliding_windows_gradw(x,
-                                  ksize,
-                                  pad,
-                                  stride,
-                                  orig_size,
-                                  floor_first=True):
+def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=True):
     """Extracts dilated windows.
 
     Args:
@@ -119,16 +114,20 @@ def extract_sliding_windows_gradw(x,
         pph = (ph2, ph3)
         ppw = (pw2, pw3)
     x = np.pad(
-        x, ((0, 0), (ph3, ph2), (pw3, pw2), (0, 0)),
-        mode='constant',
-        constant_values=(0.0, ))
+        x,
+        ((0, 0), (ph3, ph2), (pw3, pw2), (0, 0)),
+        mode="constant",
+        constant_values=(0.0,),
+    )
     p2h = (-x.shape[1]) % sh
     p2w = (-x.shape[2]) % sw
     if p2h > 0 or p2w > 0:
         x = np.pad(
-            x, ((0, 0), (0, p2h), (0, p2w), (0, 0)),
-            mode='constant',
-            constant_values=(0.0, ))
+            x,
+            ((0, 0), (0, p2h), (0, p2w), (0, 0)),
+            mode="constant",
+            constant_values=(0.0,),
+        )
 
     # The following code extracts window without copying the data:
     # x = x.reshape([n, int(x.shape[1] / sh), sh, int(x.shape[2] / sw), sw, c])
@@ -141,20 +140,17 @@ def extract_sliding_windows_gradw(x,
     #                                   sw, :]
     x_sn, x_sh, x_sw, x_sc = x.strides
     y_strides = (x_sn, x_sh, x_sw, sh * x_sh, sw * x_sw, x_sc)
-    y = np.ndarray((n, h2, w2, kh, kw, c),
-                   dtype=x.dtype,
-                   buffer=x.data,
-                   offset=array_offset(x),
-                   strides=y_strides)
+    y = np.ndarray(
+        (n, h2, w2, kh, kw, c),
+        dtype=x.dtype,
+        buffer=x.data,
+        offset=array_offset(x),
+        strides=y_strides,
+    )
     return y
 
 
-def extract_sliding_windows_gradx(x,
-                                  ksize,
-                                  pad,
-                                  stride,
-                                  orig_size,
-                                  floor_first=False):
+def extract_sliding_windows_gradx(x, ksize, pad, stride, orig_size, floor_first=False):
     """Extracts windows on a dilated image.
 
     Args:
@@ -195,10 +191,7 @@ def extract_sliding_windows_gradx(x,
     else:
         pph = (ph2, ph3)
         ppw = (pw2, pw3)
-    x = np.pad(
-        x, ((0, 0), pph, ppw, (0, 0)),
-        mode='constant',
-        constant_values=(0.0, ))
+    x = np.pad(x, ((0, 0), pph, ppw, (0, 0)), mode="constant", constant_values=(0.0,))
 
     # The following code extracts window without copying the data:
     # y = np.zeros([n, h2, w2, kh, kw, c])
@@ -207,11 +200,13 @@ def extract_sliding_windows_gradx(x,
     #         y[:, ii, jj, :, :, :] = x[:, ii:ii + kh, jj:jj + kw, :]
     x_sn, x_sh, x_sw, x_sc = x.strides
     y_strides = (x_sn, x_sh, x_sw, x_sh, x_sw, x_sc)
-    y = np.ndarray((n, h2, w2, kh, kw, c),
-                   dtype=x.dtype,
-                   buffer=x.data,
-                   offset=array_offset(x),
-                   strides=y_strides)
+    y = np.ndarray(
+        (n, h2, w2, kh, kw, c),
+        dtype=x.dtype,
+        buffer=x.data,
+        offset=array_offset(x),
+        strides=y_strides,
+    )
     return y
 
 
@@ -252,10 +247,7 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
     else:
         pph = (ph1, ph0)
         ppw = (pw1, pw0)
-    x = np.pad(
-        x, ((0, 0), pph, ppw, (0, 0)),
-        mode='constant',
-        constant_values=(0.0, ))
+    x = np.pad(x, ((0, 0), pph, ppw, (0, 0)), mode="constant", constant_values=(0.0,))
 
     # The following code extracts window without copying the data:
     # y = np.zeros([n, h2, w2, kh, kw, c])
@@ -266,15 +258,17 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
     #         y[:, ii, jj, :, :, :] = x[:, xx:xx + kh, yy:yy + kw, :]
     x_sn, x_sh, x_sw, x_sc = x.strides
     y_strides = (x_sn, sh * x_sh, sw * x_sw, x_sh, x_sw, x_sc)
-    y = np.ndarray((n, h2, w2, kh, kw, c),
-                   dtype=x.dtype,
-                   buffer=x.data,
-                   offset=array_offset(x),
-                   strides=y_strides)
+    y = np.ndarray(
+        (n, h2, w2, kh, kw, c),
+        dtype=x.dtype,
+        buffer=x.data,
+        offset=array_offset(x),
+        strides=y_strides,
+    )
     return y
 
 
-def conv2d(x, w, pad='SAME', stride=(1, 1)):
+def conv2d(x, w, pad="SAME", stride=(1, 1)):
     """2D convolution (technically speaking, correlation).
 
     Args:
@@ -297,7 +291,7 @@ def conv2d(x, w, pad='SAME', stride=(1, 1)):
     return y
 
 
-def conv2d_gradw(x, dy, ksize, pad='SAME', stride=(1, 1)):
+def conv2d_gradw(x, dy, ksize, pad="SAME", stride=(1, 1)):
     """2D convolution gradient wrt. filters.
 
     Args:
@@ -319,11 +313,11 @@ def conv2d_gradw(x, dy, ksize, pad='SAME', stride=(1, 1)):
     dw = x.dot(dy)
     dw = dw.reshape([xs[0], xs[1], xs[2], -1])
     dw = np.transpose(dw, [1, 2, 0, 3])
-    dw = dw[:ksize[0], :ksize[1], :, :]
+    dw = dw[: ksize[0], : ksize[1], :, :]
     return dw
 
 
-def conv2d_gradx(w, dy, xsize, pad='SAME', stride=(1, 1)):
+def conv2d_gradx(w, dy, xsize, pad="SAME", stride=(1, 1)):
     """2D convolution gradient wrt. input.
 
     Args:
