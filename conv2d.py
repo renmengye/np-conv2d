@@ -124,17 +124,11 @@ def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=
     y : np.array
         Sliding window: [N, H', W', KH, KW, C]
     """
-    n = x.shape[0]
-    h = x.shape[1]
-    w = x.shape[2]
-    c = x.shape[3]
-    kh = ksize[0]
-    kw = ksize[1]
-    sh = stride[0]
-    sw = stride[1]
+    n, h, w, c = x.shape
+    kh, kw = ksize
+    sh, sw = stride
 
-    h2 = orig_size[0]
-    w2 = orig_size[1]
+    h2, w2 = orig_size
     ph = int(calc_pad(pad, h, h2, 1, ((kh - 1) * sh + 1)))
     pw = int(calc_pad(pad, w, w2, 1, ((kw - 1) * sw + 1)))
 
@@ -205,19 +199,12 @@ def extract_sliding_windows_gradx(x, ksize, pad, stride, orig_size, floor_first=
     y : np.array
         Sliding window: [N, H, W, KH, KW, C]
     """
-    n = x.shape[0]
-    h = x.shape[1]
-    w = x.shape[2]
-    c = x.shape[3]
-    kh = ksize[0]
-    kw = ksize[1]
-    ph = pad[0]
-    pw = pad[1]
-    sh = stride[0]
-    sw = stride[1]
-    h2 = orig_size[0]
-    w2 = orig_size[1]
-    xs = np.zeros([n, x.shape[1], sh, x.shape[2], sw, c])
+    n, h, w, c = x.shape
+    kh, kw = ksize
+    ph, pw = pad
+    sh, sw = stride
+    h2, w2 = orig_size
+    xs = np.zeros([n, h, sh, w, sw, c])
     xs[:, :, 0, :, 0, :] = x
     xss = xs.shape
     x = xs.reshape([xss[0], xss[1] * xss[2], xss[3] * xss[4], xss[5]])
@@ -271,14 +258,9 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
     y : np.array
         Sliding window: [N, (H-KH+PH+1)/SH, (W-KW+PW+1)/SW, KH * KW, C]
     """
-    n = x.shape[0]
-    h = x.shape[1]
-    w = x.shape[2]
-    c = x.shape[3]
-    kh = ksize[0]
-    kw = ksize[1]
-    sh = stride[0]
-    sw = stride[1]
+    n, h, w, c = x.shape
+    kh, kw = ksize
+    sh, sw = stride
 
     h2 = int(calc_size(h, kh, pad, sh))
     w2 = int(calc_size(w, kw, pad, sw))
