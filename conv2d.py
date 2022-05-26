@@ -142,12 +142,7 @@ def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=
     else:
         pph = (ph2, ph3)
         ppw = (pw2, pw3)
-    x = np.pad(
-        x,
-        ((0, 0), (ph3, ph2), (pw3, pw2), (0, 0)),
-        mode="constant",
-        constant_values=(0.0,),
-    )
+    x = np.pad(x, ((0, 0), pph, ppw, (0, 0)), mode="constant", constant_values=(0.0,))
     p2h = (-x.shape[1]) % sh
     p2w = (-x.shape[2]) % sw
     if p2h > 0 or p2w > 0:
