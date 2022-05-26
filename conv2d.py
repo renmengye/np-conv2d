@@ -124,17 +124,11 @@ def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=
     y : np.array
         Sliding window: [N, H', W', KH, KW, C]
     """
-    n = x.shape[0]
-    h = x.shape[1]
-    w = x.shape[2]
-    c = x.shape[3]
-    kh = ksize[0]
-    kw = ksize[1]
-    sh = stride[0]
-    sw = stride[1]
+    n, h, w, c = x.shape
+    kh, kw = ksize
+    sh, sw = stride
 
-    h2 = orig_size[0]
-    w2 = orig_size[1]
+    h2, w2 = orig_size
     ph = int(calc_pad(pad, h, h2, 1, ((kh - 1) * sh + 1)))
     pw = int(calc_pad(pad, w, w2, 1, ((kw - 1) * sw + 1)))
 
@@ -148,12 +142,7 @@ def extract_sliding_windows_gradw(x, ksize, pad, stride, orig_size, floor_first=
     else:
         pph = (ph2, ph3)
         ppw = (pw2, pw3)
-    x = np.pad(
-        x,
-        ((0, 0), (ph3, ph2), (pw3, pw2), (0, 0)),
-        mode="constant",
-        constant_values=(0.0,),
-    )
+    x = np.pad(x, ((0, 0), pph, ppw, (0, 0)), mode="constant", constant_values=(0.0,))
     p2h = (-x.shape[1]) % sh
     p2w = (-x.shape[2]) % sw
     if p2h > 0 or p2w > 0:
@@ -205,19 +194,12 @@ def extract_sliding_windows_gradx(x, ksize, pad, stride, orig_size, floor_first=
     y : np.array
         Sliding window: [N, H, W, KH, KW, C]
     """
-    n = x.shape[0]
-    h = x.shape[1]
-    w = x.shape[2]
-    c = x.shape[3]
-    kh = ksize[0]
-    kw = ksize[1]
-    ph = pad[0]
-    pw = pad[1]
-    sh = stride[0]
-    sw = stride[1]
-    h2 = orig_size[0]
-    w2 = orig_size[1]
-    xs = np.zeros([n, x.shape[1], sh, x.shape[2], sw, c])
+    n, h, w, c = x.shape
+    kh, kw = ksize
+    ph, pw = pad
+    sh, sw = stride
+    h2, w2 = orig_size
+    xs = np.zeros([n, h, sh, w, sw, c])
     xs[:, :, 0, :, 0, :] = x
     xss = xs.shape
     x = xs.reshape([xss[0], xss[1] * xss[2], xss[3] * xss[4], xss[5]])
@@ -271,14 +253,9 @@ def extract_sliding_windows(x, ksize, pad, stride, floor_first=True):
     y : np.array
         Sliding window: [N, (H-KH+PH+1)/SH, (W-KW+PW+1)/SW, KH * KW, C]
     """
-    n = x.shape[0]
-    h = x.shape[1]
-    w = x.shape[2]
-    c = x.shape[3]
-    kh = ksize[0]
-    kw = ksize[1]
-    sh = stride[0]
-    sw = stride[1]
+    n, h, w, c = x.shape
+    kh, kw = ksize
+    sh, sw = stride
 
     h2 = int(calc_size(h, kh, pad, sh))
     w2 = int(calc_size(w, kw, pad, sw))
@@ -344,6 +321,55 @@ def conv2d(x, w, pad="SAME", stride=(1, 1)):
     x = x.reshape([xs[0] * xs[1] * xs[2], -1])
     y = x.dot(w)
     y = y.reshape([xs[0], xs[1], xs[2], -1])
+    return y
+
+
+def conv2d_groups(x, w, pad="SAME", stride=(1, 1)):
+    """2D convolution (technically speaking, correlation).
+
+    Compatible with groups > 1.
+
+    Arguments
+    ---------
+    x : np.array
+        Input with shape [N, H, W, C]
+    w : np.array
+        Weights with shape [I, J, C/G, K]
+    pad : str or int
+        Padding strategy or [PH, PW].
+    stride : int
+        Stride, [SH, SW].
+
+    Returns
+    -------
+    y : np.array
+        Convolved result with shape [N, H', W', K]
+    """
+    assert x.ndim == 4 and w.ndim == 4
+    c = x.shape[-1]  # input channels
+    ksize = w.shape[:2]
+    cg, k = w.shape[2:]  # channels-per-group and output channels
+
+    # infer number of groups
+    assert (
+        c % cg == 0
+    ), f"Number of channels ({c}) must be divisible by channels-per-group ({cg})"
+    groups = c // cg
+    print(groups)
+
+    x = extract_sliding_windows(x, ksize, pad, stride)
+    x = x.reshape(x.shape[:-1] + (groups, c // groups))  # split windows into groups
+    x = np.moveaxis(x, -2, 0)  # move groups to axis 0
+    xs = x.shape
+    x = x.reshape([groups, xs[1] * xs[2] * xs[3], xs[4] * xs[5] * xs[6]])
+
+    w = w.reshape(w.shape[:-1] + (groups, k // groups))  # split weights into groups
+    w = np.moveaxis(w, -2, 0)  # move groups to axis 0
+    ws = w.shape
+    w = w.reshape([groups, ws[1] * ws[2] * ws[3], ws[4]])
+
+    y = np.einsum("ikj,ijm->kim", x, w)
+    y = y.reshape([xs[1], xs[2], xs[3], k])
     return y
 
 
